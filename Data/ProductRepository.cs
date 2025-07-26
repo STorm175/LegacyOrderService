@@ -1,9 +1,4 @@
-﻿// Data/ProductRepository.cs
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
-namespace LegacyOrderService.Data
+﻿namespace LegacyOrderService.Data
 {
     public class ProductRepository
     {
@@ -13,6 +8,11 @@ namespace LegacyOrderService.Data
             ["Gadget"] = 15.49,
             ["Doohickey"] = 8.75
         };
+
+        public bool ProductExists(string productName)
+        {
+            return _productPrices.ContainsKey(productName);
+        }
 
         public double GetPrice(string productName)
         {

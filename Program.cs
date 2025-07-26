@@ -1,6 +1,6 @@
-using System;
-using LegacyOrderService.Models;
 using LegacyOrderService.Data;
+using LegacyOrderService.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LegacyOrderService
 {
@@ -8,6 +8,14 @@ namespace LegacyOrderService
     {
         static void Main(string[] args)
         {
+            var serviceProvider = new ServiceCollection()
+                .AddSingleton<ProductRepository>()
+                .AddSingleton<OrderRepository>()
+                .AddSingleton<OrderService>()
+                .BuildServiceProvider();
+
+            var orderService = serviceProvider.GetService<OrderService>();
+
             Console.WriteLine("Welcome to Order Processor!");
             Console.WriteLine("Enter customer name:");
             string name = Console.ReadLine();
@@ -15,32 +23,18 @@ namespace LegacyOrderService
             Console.WriteLine("Enter product name:");
             string product = Console.ReadLine();
             var productRepo = new ProductRepository();
-            double price = productRepo.GetPrice(product);
-
 
             Console.WriteLine("Enter quantity:");
-            int qty = Convert.ToInt32(Console.ReadLine());
+            string quantityInput = Console.ReadLine();
 
-            Console.WriteLine("Processing order...");
-
-            Order order = new Order();
-            order.CustomerName = name;
-            order.ProductName = product;
-            order.Quantity = qty;
-            order.Price = price;
-
-            double total = order.Quantity * order.Price;
-
-            Console.WriteLine("Order complete!");
-            Console.WriteLine("Customer: " + order.CustomerName);
-            Console.WriteLine("Product: " + order.ProductName);
-            Console.WriteLine("Quantity: " + order.Quantity);
-            Console.WriteLine("Total: $" + total);
-
-            Console.WriteLine("Saving order to database...");
-            var repo = new OrderRepository();
-            repo.Save(order);
-            Console.WriteLine("Done.");
+            try
+            {
+                orderService.ProcessOrder(name, product, quantityInput);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
         }
     }
 }

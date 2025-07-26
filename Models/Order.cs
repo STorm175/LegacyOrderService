@@ -1,10 +1,15 @@
 namespace LegacyOrderService.Models
 {
-    public class Order
+    public record Order(string CustomerName, string ProductName, int Quantity, double Price)
     {
-        public string CustomerName;
-        public string ProductName;
-        public int Quantity;
-        public double Price;
+        public double Total => Quantity * Price;
+
+        public override string ToString()
+        {
+            return $"Customer: {CustomerName}\n" +
+                   $"Product: {ProductName}\n" +
+                   $"Quantity: {Quantity}\n" +
+                   $"Total: ${Total}";
+        }
     }
 }
