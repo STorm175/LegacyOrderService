@@ -11,7 +11,7 @@ namespace LegacyOrderService.Data
 
         public void Save(Order order)
         {
-            var connection = new SqliteConnection(_connectionString));
+            var connection = new SqliteConnection(_connectionString);
             
             connection.Open();
 
