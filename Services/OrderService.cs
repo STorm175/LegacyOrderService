@@ -1,4 +1,5 @@
-﻿using LegacyOrderService.Data;
+﻿using Microsoft.Extensions.Logging;
+using LegacyOrderService.Data;
 using LegacyOrderService.Models;
 
 namespace LegacyOrderService.Services
@@ -7,33 +8,46 @@ namespace LegacyOrderService.Services
     {
         private readonly ProductRepository _productRepository;
         private readonly OrderRepository _orderRepository;
+        private readonly ILogger<OrderService> _logger;
 
-        public OrderService(ProductRepository productRepository, OrderRepository orderRepository)
+        public OrderService(ProductRepository productRepository, OrderRepository orderRepository, ILogger<OrderService> logger)
         {
             _productRepository = productRepository;
             _orderRepository = orderRepository;
+            _logger = logger;
         }
 
-        public void ProcessOrder(string customerName, string productName, string quantityInput)
+        public async Task ProcessOrderAsync(string customerName, string productName, string quantityInput)
         {
-            if (string.IsNullOrWhiteSpace(customerName))
-                throw new ArgumentException("Customer name cannot be empty.");
+            _logger.LogInformation("Processing order for customer: {CustomerName}, product: {ProductName}, quantity: {QuantityInput}",
+                customerName, productName, quantityInput);
 
-            if (!_productRepository.ProductExists(productName))
-                throw new ArgumentException($"Product '{productName}' not found.");
+            try
+            {
+                if (string.IsNullOrWhiteSpace(customerName))
+                    throw new ArgumentException("Customer name cannot be empty.");
 
-            if (!int.TryParse(quantityInput, out int quantity) || quantity <= 0)
-                throw new ArgumentException("Quantity must be a positive integer.");
+                if (!_productRepository.ProductExists(productName))
+                    throw new ProductNotFoundException($"Product '{productName}' not found.");
 
-            double price = _productRepository.GetPrice(productName);
+                if (!int.TryParse(quantityInput, out int quantity) || quantity <= 0)
+                    throw new ArgumentException("Quantity must be a positive integer.");
 
-            var order = new Order(customerName, productName, quantity, price);
+                double price = await _productRepository.GetPriceAsync(productName);
 
-            Console.WriteLine("Order complete!");
-            Console.WriteLine(order);
-            Console.WriteLine("Saving order to database...");
-            _orderRepository.Save(order);
-            Console.WriteLine("Done.");
+                var order = new Order(customerName, productName, quantity, price);
+
+                _logger.LogInformation("Order created:\n{@Order}", order);
+
+                await _orderRepository.SaveAsync(order);
+
+                _logger.LogInformation("Order complete!");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while processing the order.");
+                throw;
+            }
         }
     }
 }

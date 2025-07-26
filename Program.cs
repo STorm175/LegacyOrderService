@@ -1,40 +1,58 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using LegacyOrderService.Data;
 using LegacyOrderService.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace LegacyOrderService
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
+            // Configure Dependency Injection and Logging
             var serviceProvider = new ServiceCollection()
+                .AddLogging(configure =>
+                {
+                    configure.AddSimpleConsole(options =>
+                    {
+                        options.SingleLine = true; // Log everything in a single line
+                        options.TimestampFormat = "yyyy-MM-dd HH:mm:ss "; // Add a timestamp
+                        options.IncludeScopes = false; // Disable scopes
+                    });
+                    configure.SetMinimumLevel(LogLevel.Information);
+                }) // Add console logging
                 .AddSingleton<ProductRepository>()
                 .AddSingleton<OrderRepository>()
                 .AddSingleton<OrderService>()
                 .BuildServiceProvider();
 
+            // Get the logger
+            var logger = serviceProvider.GetService<ILogger<Program>>();
+            logger.LogInformation("Application started.");
+
             var orderService = serviceProvider.GetService<OrderService>();
 
-            Console.WriteLine("Welcome to Order Processor!");
-            Console.WriteLine("Enter customer name:");
+            logger.LogInformation("Welcome to Order Processor!");
+            logger.LogInformation("Enter customer name:");
             string name = Console.ReadLine();
 
-            Console.WriteLine("Enter product name:");
+            logger.LogInformation("Enter product name:");
             string product = Console.ReadLine();
-            var productRepo = new ProductRepository();
 
-            Console.WriteLine("Enter quantity:");
+            logger.LogInformation("Enter quantity:");
             string quantityInput = Console.ReadLine();
 
             try
             {
-                orderService.ProcessOrder(name, product, quantityInput);
+                await orderService.ProcessOrderAsync(name, product, quantityInput);
+                logger.LogInformation("Order processed successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                logger.LogError(ex, "An error occurred while processing the order.");
             }
+
+            logger.LogInformation("Application ended.");
         }
     }
 }
