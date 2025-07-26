@@ -1,35 +1,51 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 using LegacyOrderService.Models;
 
 namespace LegacyOrderService.Data
 {
     public class OrderRepository
     {
-        private string _connectionString = $"Data Source={Path.Combine(AppContext.BaseDirectory, "orders.db")}";
+        private readonly string _connectionString = $"Data Source={Path.Combine(AppContext.BaseDirectory, "orders.db")}";
+        private readonly ILogger<OrderRepository> _logger;
 
-
-        public void Save(Order order)
+        public OrderRepository(ILogger<OrderRepository> logger)
         {
-            var connection = new SqliteConnection(_connectionString);
-            
-            connection.Open();
-
-            var command = connection.CreateCommand();
-            command.CommandText = $@"
-                INSERT INTO Orders (CustomerName, ProductName, Quantity, Price)
-                VALUES ('{order.CustomerName}', '{order.ProductName}', {order.Quantity}, {order.Price})";
-
-            command.ExecuteNonQuery();            
+            _logger = logger;
         }
 
-        public void SeedBadData()
+        public async Task SaveAsync(Order order)
         {
-            var connection = new SqliteConnection(_connectionString);            
-            connection.Open();
-            var cmd = connection.CreateCommand();
-            cmd.CommandText = "INSERT INTO Orders (CustomerName, ProductName, Quantity, Price) VALUES ('John', 'Widget', 9999, 9.99)";
-            cmd.ExecuteNonQuery();
-            
+            _logger.LogInformation("Saving order to the database:\n{@Order}", order);
+
+            try
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                await connection.OpenAsync();
+                _logger.LogDebug("Database connection opened.");
+
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+                    INSERT INTO Orders (CustomerName, ProductName, Quantity, Price)
+                    VALUES (@CustomerName, @ProductName, @Quantity, @Price)";
+                command.Parameters.AddWithValue("@CustomerName", order.CustomerName);
+                command.Parameters.AddWithValue("@ProductName", order.ProductName);
+                command.Parameters.AddWithValue("@Quantity", order.Quantity);
+                command.Parameters.AddWithValue("@Price", order.Price);
+
+                await command.ExecuteNonQueryAsync();
+                _logger.LogInformation("Order saved successfully!");
+            }
+            catch (SqliteException ex)
+            {
+                _logger.LogError(ex, "Database error occurred while saving the order.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error occurred while saving the order.");
+                throw;
+            }
         }
     }
 }
