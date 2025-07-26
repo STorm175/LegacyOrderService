@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using LegacyOrderService.Data;
 using LegacyOrderService.Models;
+using LegacyOrderService.Exceptions;
 
 namespace LegacyOrderService.Services
 {

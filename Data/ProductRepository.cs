@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using LegacyOrderService.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace LegacyOrderService.Data
@@ -49,42 +47,5 @@ namespace LegacyOrderService.Data
             _logger.LogWarning("Product not found: {ProductName}", productName);
             throw new ProductNotFoundException($"Product '{productName}' not found.");
         }
-
-        /// <summary>
-        /// Adds or updates a product in the repository.
-        /// </summary>
-        public void AddOrUpdateProduct(string productName, double price)
-        {
-            if (string.IsNullOrWhiteSpace(productName))
-                throw new ArgumentException("Product name cannot be empty.", nameof(productName));
-            if (price < 0)
-                throw new ArgumentException("Price cannot be negative.", nameof(price));
-
-            _productPrices[productName] = price;
-            _logger.LogInformation("Product added/updated: {ProductName} with price {Price}", productName, price);
-        }
-
-        /// <summary>
-        /// Removes a product from the repository.
-        /// </summary>
-        public void RemoveProduct(string productName)
-        {
-            if (_productPrices.Remove(productName))
-            {
-                _logger.LogInformation("Product removed: {ProductName}", productName);
-            }
-            else
-            {
-                _logger.LogWarning("Attempted to remove non-existent product: {ProductName}", productName);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Custom exception for product not found scenarios.
-    /// </summary>
-    public class ProductNotFoundException : Exception
-    {
-        public ProductNotFoundException(string message) : base(message) { }
     }
 }
