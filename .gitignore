@@ -1,0 +1,48 @@
+# Visual Studio and .NET related files
+.vs/
+bin/
+obj/
+*.suo
+*.user
+*.pdb
+*.ilk
+*.log
+*.ncb
+*.aps
+*.opensdf
+*.sdf
+*.vsp
+*.vspx
+*.psess
+*.cachefile
+*.gpState
+*.pidb
+*.scc
+*.vspscc
+*.vssscc
+
+# NuGet packages
+packages/
+**/packages/repositories.config
+
+# ReSharper and other add-ons
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.dotCover
+*.ncrunch*
+*.crunch*.local.xml
+
+# Publish outputs
+publish/
+AppPackages/
+ClientBin/
+*.Publish.xml
+*.pfx
+*.publishsettings
+
+# Other common exclusions
+*~$*
+*~
+*.dbmdl
+modulesbin/
+tempbin/
