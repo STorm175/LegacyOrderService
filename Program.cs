@@ -2,6 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using LegacyOrderService.Data;
 using LegacyOrderService.Services;
+using Microsoft.Extensions.Configuration;
+using System.Data.Common;
+using LegacyOrderService.Interfaces;
 
 namespace LegacyOrderService
 {
@@ -9,64 +12,98 @@ namespace LegacyOrderService
     {
         static async Task Main(string[] args)
         {
-            // Configure Dependency Injection and Logging
-            var serviceProvider = new ServiceCollection()
+            var configuration = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
+            DbProviderFactories.RegisterFactory(
+            "Microsoft.Data.Sqlite",
+            Microsoft.Data.Sqlite.SqliteFactory.Instance
+                );
+            var serviceProvider = ConfigureServices(configuration);
+            var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+
+            logger.LogInformation("Application started.");
+
+            var (name, product, quantity) = GetUserInput(logger);
+            if (name == null || product == null || quantity <= 0)
+            {
+                logger.LogWarning("Invalid input. Exiting application.");
+                return;
+            }
+
+            await ProcessOrderAsync(serviceProvider, logger, name, product, quantity);
+
+            logger.LogInformation("Application ended.");
+        }
+
+        private static ServiceProvider ConfigureServices(IConfiguration configuration)
+        {
+            return new ServiceCollection()
+                .AddSingleton(configuration) // register IConfiguration
                 .AddLogging(configure =>
                 {
                     configure.AddSimpleConsole(options =>
                     {
-                        options.SingleLine = true; // Log everything in a single line
-                        options.TimestampFormat = "yyyy-MM-dd HH:mm:ss "; // Add a timestamp
-                        options.IncludeScopes = false; // Disable scopes
+                        options.SingleLine = true;
+                        options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+                        options.IncludeScopes = false;
                     });
                     configure.SetMinimumLevel(LogLevel.Information);
-                }) // Add console logging
-                .AddSingleton<ProductRepository>()
-                .AddSingleton<OrderRepository>()
-                .AddSingleton<OrderService>()
+                })
+                .AddScoped<IProductRepository, ProductRepository>()
+                .AddScoped<IOrderRepository, SqliteOrderRepository>()
+                .AddScoped<OrderService>()
                 .BuildServiceProvider();
+        }
 
-            // Get the logger
-            var logger = serviceProvider.GetService<ILogger<Program>>();
-            logger.LogInformation("Application started.");
-
+        private static (string? name, string? product, int quantity) GetUserInput(ILogger logger)
+        {
             logger.LogInformation("Welcome to Order Processor!");
+
             logger.LogInformation("Enter customer name:");
-            string name = Console.ReadLine();
+            var name = Console.ReadLine();
             if (string.IsNullOrWhiteSpace(name))
             {
                 logger.LogWarning("Customer name is required.");
-                return;
+                return (null, null, 0);
             }
 
             logger.LogInformation("Enter product name:");
-            string product = Console.ReadLine();
+            var product = Console.ReadLine();
             if (string.IsNullOrWhiteSpace(product))
             {
                 logger.LogWarning("Product name is required.");
-                return;
+                return (null, null, 0);
             }
-            
+
             logger.LogInformation("Enter quantity:");
-            string quantityInput = Console.ReadLine();
+            var quantityInput = Console.ReadLine();
             if (!int.TryParse(quantityInput, out int quantity) || quantity <= 0)
             {
                 logger.LogWarning("Quantity must be a positive integer.");
-                return;
+                return (null, null, 0);
             }
 
-            var orderService = serviceProvider.GetService<OrderService>();
+            return (name, product, quantity);
+        }
+
+        private static async Task ProcessOrderAsync(
+            IServiceProvider serviceProvider,
+            ILogger logger,
+            string name,
+            string product,
+            int quantity)
+        {
             try
             {
-                await orderService.ProcessOrderAsync(name, product, quantityInput);
+                var orderService = serviceProvider.GetRequiredService<OrderService>();
+                await orderService.ProcessOrderAsync(name, product, quantity.ToString());
                 logger.LogInformation("Order processed successfully.");
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "An error occurred while processing the order.");
             }
-
-            logger.LogInformation("Application ended.");
         }
     }
 }
