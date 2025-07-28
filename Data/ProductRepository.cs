@@ -1,9 +1,10 @@
 ﻿using LegacyOrderService.Exceptions;
+using LegacyOrderService.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace LegacyOrderService.Data
 {
-    public class ProductRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly Dictionary<string, double> _productPrices;
         private readonly ILogger<ProductRepository> _logger;

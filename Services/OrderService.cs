@@ -2,16 +2,17 @@
 using LegacyOrderService.Data;
 using LegacyOrderService.Models;
 using LegacyOrderService.Exceptions;
+using LegacyOrderService.Interfaces;
 
 namespace LegacyOrderService.Services
 {
     public class OrderService
     {
-        private readonly ProductRepository _productRepository;
-        private readonly OrderRepository _orderRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IOrderRepository _orderRepository;
         private readonly ILogger<OrderService> _logger;
 
-        public OrderService(ProductRepository productRepository, OrderRepository orderRepository, ILogger<OrderService> logger)
+        public OrderService(IProductRepository productRepository, IOrderRepository orderRepository, ILogger<OrderService> logger)
         {
             _productRepository = productRepository;
             _orderRepository = orderRepository;
