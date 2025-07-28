@@ -6,7 +6,7 @@ using LegacyOrderService.Interfaces;
 
 namespace LegacyOrderService.Services
 {
-    public class OrderService
+    public class OrderService : IOrderService
     {
         private readonly IProductRepository _productRepository;
         private readonly IOrderRepository _orderRepository;
