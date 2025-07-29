@@ -5,29 +5,28 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using LegacyOrderService.Models;
 using LegacyOrderService.Interfaces;
-
 namespace LegacyOrderService.Data
 {
     public class SqliteOrderRepository : IOrderRepository
     {
+        private readonly ILogger<SqliteOrderRepository> _logger;
         private readonly string _connectionString;
         private readonly DbProviderFactory _factory;
-        private readonly ILogger<SqliteOrderRepository> _logger;
         private readonly AsyncRetryPolicy _retryPolicy;
 
-        public SqliteOrderRepository(ILogger<SqliteOrderRepository> logger, IConfiguration configuration)
+        // Refactored constructor
+        public SqliteOrderRepository(
+            ILogger<SqliteOrderRepository> logger,
+            string connectionString,
+            DbProviderFactory factory,
+            AsyncRetryPolicy? retryPolicy = null)
         {
             _logger = logger;
-            _connectionString = configuration.GetConnectionString("OrdersDatabase")
-                ?? throw new InvalidOperationException("Connection string 'OrdersDatabase' is missing.");
+            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
 
-            var providerName = configuration["Database:ProviderName"]
-                ?? throw new InvalidOperationException("Provider name is missing.");
-
-            _factory = DbProviderFactories.GetFactory(providerName);
-
-            _retryPolicy = Policy
-                .Handle<DbException>() // catch transient DB errors
+            _retryPolicy = retryPolicy ?? Policy
+                .Handle<DbException>()
                 .WaitAndRetryAsync(
                     retryCount: 3,
                     sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // 2s, 4s, 8s

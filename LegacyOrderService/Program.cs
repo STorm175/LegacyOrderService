@@ -16,8 +16,8 @@ namespace LegacyOrderService
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
             DbProviderFactories.RegisterFactory(
-            "Microsoft.Data.Sqlite",
-            Microsoft.Data.Sqlite.SqliteFactory.Instance
+                "Microsoft.Data.Sqlite",
+                Microsoft.Data.Sqlite.SqliteFactory.Instance
                 );
             var serviceProvider = ConfigureServices(configuration);
             var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
@@ -51,8 +51,21 @@ namespace LegacyOrderService
                     configure.SetMinimumLevel(LogLevel.Information);
                 })
                 .AddScoped<IProductRepository, ProductRepository>()
-                .AddScoped<IOrderRepository, SqliteOrderRepository>()
-                .AddScoped<OrderService>()
+                .AddScoped<IOrderRepository>(provider =>
+                {
+                    var logger = provider.GetRequiredService<ILogger<SqliteOrderRepository>>();
+                    var config = provider.GetRequiredService<IConfiguration>();
+                    var connectionString = config.GetConnectionString("OrdersDatabase")
+                        ?? throw new InvalidOperationException("Missing connection string");
+
+                    var providerName = config["Database:ProviderName"]
+                        ?? throw new InvalidOperationException("Missing provider name");
+
+                    var factory = DbProviderFactories.GetFactory(providerName);
+
+                    return new SqliteOrderRepository(logger, connectionString, factory);
+                })
+                .AddScoped<IOrderService, OrderService>()
                 .BuildServiceProvider();
         }
 
@@ -96,7 +109,7 @@ namespace LegacyOrderService
         {
             try
             {
-                var orderService = serviceProvider.GetRequiredService<OrderService>();
+                var orderService = serviceProvider.GetRequiredService<IOrderService>();
                 await orderService.ProcessOrderAsync(name, product, quantity.ToString());
                 logger.LogInformation("Order processed successfully.");
             }
